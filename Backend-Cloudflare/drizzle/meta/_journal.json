@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1787266443098,
+      "tag": "0000_lucky_iron_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787268544967,
+      "tag": "0001_overjoyed_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787271374465,
+      "tag": "0002_thin_black_tom",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787608182689,
+      "tag": "0003_stormy_hemingway",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788474854656,
+      "tag": "0004_striped_bloodaxe",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788966725779,
+      "tag": "0005_condemned_dark_beast",
+      "breakpoints": true
+    }
+  ]
+}

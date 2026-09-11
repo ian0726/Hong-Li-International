@@ -1,0 +1,1 @@
+ALTER TABLE `categories` ADD `default_image_url` text DEFAULT '' NOT NULL;
