@@ -1,4 +1,6 @@
+import { useLayoutEffect } from "react";
 import AutoFitTitle from "./AutoFitTitle";
+import ArrowIcon from "./ArrowIcon";
 import { inquiryLink, type Product, type InquirySettings } from "./catalog";
 
 function videoEmbed(raw:string) {
@@ -25,7 +27,7 @@ function MediaStack({images=[],videos=[],name,assetUrl}:{images?:string[];videos
       return <div className="media-stack-video" key={`${url}-${index}`}>
         {embed?<iframe src={embed} title={title} loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
           :/\.(mp4|webm|ogg|mov)([?#].*)?$/i.test(resolved)||resolved.includes("/api/files?")?<video src={resolved} controls playsInline preload="metadata" aria-label={title}/>
-          :<a href={resolved} target="_blank" rel="noreferrer">開啟影片 ↗</a>}
+          :<a href={resolved} target="_blank" rel="noreferrer">開啟影片 <ArrowIcon /></a>}
       </div>;
     })}
   </div>;
@@ -35,12 +37,15 @@ export default function ProductDetail({product,settings,onBack,assetUrl,apiBase}
   const images=product.imageUrls?.length?product.imageUrls:product.imageUrl?[product.imageUrl]:product.defaultImageUrl?[product.defaultImageUrl]:[];
   const mailto=inquiryLink(settings,product);
   const wiper=product.category==="雨刷";
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [product.id]);
   return <main className="product-detail">
     <header className="detail-header"><button className="detail-brand" onClick={onBack}><b>閎麗國際有限公司</b></button><button onClick={onBack}>← 返回產品中心</button></header>
     <section className="detail-intro"><p className="eyebrow dark"><span/>{product.category}</p>
       <div className="detail-tags">{[product.series,product.brand,product.model,product.year].filter(Boolean).map((item,index)=><span key={index}>{item}</span>)}</div>
       <AutoFitTitle as="h1" maxSize={56} mobileMaxSize={34} minSize={12}>{product.name}</AutoFitTitle>
-      <div className="detail-intro-bottom"><p>{product.description}</p><a className="button primary" href={mailto}>詢問此項產品 <i>↗</i></a></div>
+      <div className="detail-intro-bottom"><p>{product.description}</p><a className="button primary" href={mailto}>詢問此項產品 <ArrowIcon /></a></div>
     </section>
     {images.length>0&&<section className="primary-media-section"><div className="primary-media-frame"><MediaStack images={images.slice(0,1)} name={product.name} assetUrl={assetUrl}/></div></section>}
     {wiper&&<section className="wiper-spec-section"><div><p className="eyebrow dark"><span/>WIPER SPECIFICATION</p><h2>規格說明</h2></div>
@@ -52,6 +57,6 @@ export default function ProductDetail({product,settings,onBack,assetUrl,apiBase}
     <section className="spec-section"><div><p className="eyebrow dark"><span/>PRODUCT DATA</p><h2>產品資料</h2></div><dl>
       {[["汽車廠牌",product.brand],["車款型號",product.model],["適用年份",product.year||"未指定"],["產品分類／系列",`${product.category}／${product.series}`],["廠商報價 SKU",product.sku||"未提供"],["國際條碼 EAN",product.barcode||"未提供"]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
     </dl></section>
-    <section className="detail-cta"><h2>需要完整產品清單？</h2><p>下載最新品項總覽，或聯絡我們取得經銷合作資料。</p><div>{apiBase&&settings.catalogAvailable&&<a className="button primary" href={`${apiBase}/api/catalog`} target="_blank" rel="noreferrer">查看品項總覽 PDF <i>↗</i></a>}<a className="button outline-dark" href={mailto}>聯絡業務</a></div></section>
+    <section className="detail-cta"><h2>需要完整產品清單？</h2><p>下載最新品項總覽，或聯絡我們取得經銷合作資料。</p><div>{apiBase&&settings.catalogAvailable&&<a className="button primary" href={`${apiBase}/api/catalog`} target="_blank" rel="noreferrer">查看品項總覽 PDF <ArrowIcon /></a>}<a className="button outline-dark" href={mailto}>聯絡業務</a></div></section>
   </main>;
 }
