@@ -10,10 +10,13 @@ export async function POST(request: Request) {
     if (!(file instanceof File)) return Response.json({ error: "請選擇檔案" }, { status: 400 });
     const isPdf = file.type === "application/pdf";
     const isImage = file.type.startsWith("image/");
-    if ((kind === "catalog" && !isPdf) || (kind !== "catalog" && !isImage)) {
-      return Response.json({ error: kind === "catalog" ? "僅支援 PDF" : "僅支援圖片格式" }, { status: 400 });
+    const isVideo = file.type.startsWith("video/");
+    const expectsVideo = kind.endsWith("-video");
+    if ((kind === "catalog" && !isPdf) || (expectsVideo && !isVideo) || (kind !== "catalog" && !expectsVideo && !isImage)) {
+      return Response.json({ error: kind === "catalog" ? "僅支援 PDF" : expectsVideo ? "僅支援影片格式" : "僅支援圖片格式" }, { status: 400 });
     }
-    if (file.size > 10 * 1024 * 1024) return Response.json({ error: "檔案不可超過 10MB" }, { status: 400 });
+    const maxSize=expectsVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) return Response.json({ error: `檔案不可超過 ${expectsVideo ? 50 : 10}MB` }, { status: 400 });
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
     const key = `${kind}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
     await runtime.BUCKET.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });

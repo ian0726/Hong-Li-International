@@ -18,8 +18,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const now=new Date().toISOString();
     await runtime.DB.batch([
       runtime.DB.prepare(`UPDATE products SET
-        name=?,category=?,series=?,brand=?,model=?,year=?,sku=?,barcode=?,description=?,accent=?,image_url=?,image_urls=?,video_urls=?,updated_at=? WHERE id=?`)
-        .bind(data.name,data.category,data.series,data.brand.toUpperCase(),data.model,data.year,data.sku,data.barcode,data.description,data.accent,data.imageUrl,JSON.stringify(data.imageUrls),JSON.stringify(data.videoUrls),now,Number(id)),
+        name=?,category=?,series=?,brand=?,model=?,year=?,sku=?,barcode=?,description=?,wiper_specification=?,wiper_spec_image_urls=?,wiper_spec_video_urls=?,accent=?,image_url=?,image_urls=?,video_urls=?,updated_at=? WHERE id=?`)
+        .bind(data.name,data.category,data.series,data.brand.toUpperCase(),data.model,data.year,data.sku,data.barcode,data.description,data.wiperSpecification,JSON.stringify(data.wiperSpecImageUrls),JSON.stringify(data.wiperSpecVideoUrls),data.accent,data.imageUrl,JSON.stringify(data.imageUrls),JSON.stringify(data.videoUrls),now,Number(id)),
       runtime.DB.prepare("INSERT OR IGNORE INTO categories (name,created_at,updated_at) VALUES (?,?,?)").bind(data.category,now,now),
       runtime.DB.prepare("INSERT OR IGNORE INTO brands (name,created_at,updated_at) VALUES (?,?,?)").bind(data.brand.toUpperCase(),now,now),
     ]);

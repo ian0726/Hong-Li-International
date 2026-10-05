@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `wiper_specification` text DEFAULT '' NOT NULL;

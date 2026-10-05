@@ -1,8 +1,4 @@
-"use client";
-
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-
-type MediaItem = { type:"image"|"video"; url:string };
+import type { ReactNode } from "react";
 
 function embedUrl(rawUrl:string) {
   try {
@@ -25,23 +21,12 @@ function isDirectVideo(url:string) {
 }
 
 export default function ProductMediaCarousel({images,videos,name,fallback}:{images:string[];videos:string[];name:string;fallback?:ReactNode}) {
-  const items=useMemo<MediaItem[]>(()=>[
-    ...images.filter(Boolean).map((url)=>({type:"image" as const,url})),
-    ...videos.filter(Boolean).map((url)=>({type:"video" as const,url})),
-  ],[images,videos]);
-  const [active,setActive]=useState(0);
-  useEffect(()=>setActive((current)=>Math.min(current,Math.max(items.length-1,0))),[items.length]);
-  const item=items[active];
-  function move(direction:number){setActive((current)=>(current+direction+items.length)%items.length);}
-
-  return <div className="media-carousel">
-    <div className="media-stage">
-      {!item && fallback}
-      {item?.type==="image"&&<img src={item.url} alt={`${name}－圖片 ${active+1}`}/>} 
-      {item?.type==="video"&&<VideoSlide url={item.url} title={`${name}－影片 ${active+1}`}/>} 
-      {items.length>1&&<><button type="button" className="media-arrow previous" onClick={()=>move(-1)} aria-label="上一個媒體">‹</button><button type="button" className="media-arrow next" onClick={()=>move(1)} aria-label="下一個媒體">›</button></>}
-    </div>
-    {items.length>1&&<div className="media-dots" aria-label={`第 ${active+1} 個，共 ${items.length} 個`}>{items.map((entry,index)=><button type="button" key={`${entry.type}-${entry.url}-${index}`} className={index===active?"active":""} onClick={()=>setActive(index)} aria-label={`顯示第 ${index+1} 個${entry.type==="image"?"圖片":"影片"}`}/>)}</div>}
+  const cleanImages=images.filter(Boolean);
+  const cleanVideos=videos.filter(Boolean);
+  return <div className="media-stack">
+    {!cleanImages.length&&!cleanVideos.length&&<div className="media-fallback">{fallback}</div>}
+    {cleanImages.map((url,index)=><img key={`${url}-${index}`} src={url} alt={`${name}－圖片 ${index+1}`}/>)}
+    {cleanVideos.map((url,index)=><div className="media-video" key={`${url}-${index}`}><VideoSlide url={url} title={`${name}－影片 ${index+1}`}/></div>)}
   </div>;
 }
 

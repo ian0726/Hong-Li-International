@@ -1,14 +1,15 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "hong-li-international-backend",
+  "account_id": "b72c33849c3622dfb324013575ecceac",
   "main": "./worker/index.ts",
-  "compatibility_date": "2026-08-25",
+  "compatibility_date": "2026-05-22",
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "hong-li-international-db",
-      "database_id": "00000000-0000-4000-8000-000000000000",
+      "database_id": "83022085-e4a4-4c29-a3c5-7079c8247ef0",
       "migrations_dir": "drizzle"
     }
   ],

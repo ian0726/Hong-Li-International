@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://blueroute-auto-parts.kenyang337447.chatgpt.site"),
+  metadataBase: new URL("https://hong-li-international-backend.ianyang-0726.workers.dev"),
   title: "閎麗國際有限公司｜B2B 汽車零件產品中心",
   description: "依照廠牌、型號與年份，快速找到精準適配的汽車零配件。",
   openGraph: {

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import catalogSeed from "../lib/catalog-seed.json";
+import AutoFitTitle from "./components/auto-fit-title";
 
 type Product = {
   id: number; name: string; category: string; series: string; brand: string; model: string;
@@ -41,6 +42,8 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>(seedProducts);
   const [contactEmail, setContactEmail] = useState("sales@ianautostore.com");
+  const [inquiryEmailSubject,setInquiryEmailSubject]=useState("我想購買");
+  const [inquiryEmailBody,setInquiryEmailBody]=useState("姓名：\n\n電話：\n\n地址：\n\n購買品項：\n\n車款：\n\n年份：\n\n我們將有專人與您確認訂單，謝謝");
   const categories = useMemo(() => ["全部商品", ...Array.from(new Set(products.map((product) => product.category)))], [products]);
   const seriesOptions = useMemo(() => Array.from(new Set(products.map((product) => product.series).filter(Boolean))), [products]);
   const brands = useMemo(() => vehicleIndex(products), [products]);
@@ -55,7 +58,7 @@ export default function Home() {
       .then((data) => { if (Array.isArray(data.products) && data.products.length) setProducts(data.products); })
       .catch(() => undefined);
     fetch("/api/settings").then((response) => response.ok ? response.json() : Promise.reject())
-      .then((data) => { if (data.contactEmail) setContactEmail(String(data.contactEmail)); })
+      .then((data) => { if (data.contactEmail) setContactEmail(String(data.contactEmail));if(data.inquiryEmailSubject)setInquiryEmailSubject(String(data.inquiryEmailSubject));if(data.inquiryEmailBody)setInquiryEmailBody(String(data.inquiryEmailBody)); })
       .catch(() => undefined);
   }, []);
   const filtered = useMemo(() => products.filter((item) =>
@@ -130,7 +133,7 @@ export default function Home() {
         <div className="section-heading catalog-heading"><div><p className="eyebrow dark"><span /> PRODUCT RANGE</p><h2>{brand ? `${brand} ${model}` : series || "全部產品資料"}</h2></div><div className="catalog-tools"><p>{year ? `適用年份 ${year}` : `共 ${filtered.length} 筆符合資料`}</p><button onClick={resetAndReturn}>↺ 重設搜尋</button></div></div>
         <div className="category-tabs" role="tablist">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>
         <div className="product-grid">
-          {filtered.map((product) => <article className="product-card" key={product.id}><ProductVisual product={product} /><div className="product-content"><div className="product-tags"><span>{product.category}</span><span>{product.series}</span><span>{product.year || "年份依原表"}</span></div><h3>{product.name}</h3><p>{product.brand} {product.model}・{product.sku}</p><a href={`/products/${product.id}`}>查看產品細節 <span>↗</span></a></div></article>)}
+          {filtered.map((product) => <article className="product-card" key={product.id}><ProductVisual product={product} /><div className="product-content"><div className="product-tags"><span>{product.category}</span><span>{product.series}</span><span>{product.year || "年份依原表"}</span></div><AutoFitTitle as="h3" maxSize={18} minSize={10}>{product.name}</AutoFitTitle><p>{product.brand} {product.model}・{product.sku}</p><a href={`/products/${product.id}`}>查看產品細節 <span>↗</span></a></div></article>)}
           {!filtered.length && <div className="empty-state"><span>⌕</span><h3>目前沒有符合條件的產品</h3><p>請重設搜尋條件，再選擇其他車型。</p><button onClick={resetAndReturn}>重設搜尋</button></div>}
         </div>
       </section>
@@ -144,7 +147,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="contact section-pad" id="contact"><p className="eyebrow dark"><span /> START A CONVERSATION</p><h2>正在尋找合適的汽車零配件？</h2><p>告訴我們你的市場與需求，我們會提供適合的產品資料與合作建議。</p><a className="button primary" href={`mailto:${contactEmail}`}>聯絡業務團隊 <i>↗</i></a></section>
+      <section className="contact section-pad" id="contact"><p className="eyebrow dark"><span /> START A CONVERSATION</p><h2>正在尋找合適的汽車零配件？</h2><p>告訴我們你的市場與需求，我們會提供適合的產品資料與合作建議。</p><a className="button primary" href={`mailto:${contactEmail}?subject=${encodeURIComponent(inquiryEmailSubject)}&body=${encodeURIComponent(inquiryEmailBody)}`}>聯絡業務團隊 <i>↗</i></a></section>
       <footer><a className="brand" href="#top"><span className="brand-wordmark"><b>閎麗國際有限公司</b><small>HONG LI INTERNATIONAL</small></span></a><p>專業汽車零配件供應・台灣</p><span>© 2026 閎麗國際有限公司</span></footer>
     </main>
   );

@@ -13,7 +13,8 @@
     "deploy": "npm run build && wrangler deploy",
     "deploy:database": "wrangler d1 migrations apply hong-li-international-db --remote",
     "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/inquiry.test.mjs",
+    "typecheck": "tsc --noEmit",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "bash scripts/sites-env.sh -- drizzle-kit generate"
   },

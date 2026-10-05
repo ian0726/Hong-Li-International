@@ -19,6 +19,6 @@ export default function MediaUrlEditor({kind,urls,onChange,onUpload}:Props){
       <button type="button" className="media-remove" onClick={()=>remove(index)} aria-label={`刪除第 ${index+1} 個${noun}`}>刪除</button>
     </div>)}</div>
     {!urls.length&&<div className="media-url-empty">目前沒有商品{noun}</div>}
-    <div className="media-url-actions"><button type="button" className="admin-secondary" onClick={()=>onChange([...urls,""])}>＋ 新增{noun}連結</button>{kind==="image"&&onUpload&&<label className="admin-secondary upload-pill"><input type="file" accept="image/*" multiple onChange={(event)=>{if(event.target.files?.length)onUpload(event.target.files);event.currentTarget.value="";}}/>上傳圖片</label>}</div>
+    <div className="media-url-actions"><button type="button" className="admin-secondary" onClick={()=>onChange([...urls,""])}>＋ 新增{noun}連結</button>{onUpload&&<label className="admin-secondary upload-pill"><input type="file" accept={kind==="image"?"image/*":"video/*"} multiple onChange={(event)=>{if(event.target.files?.length)onUpload(event.target.files);event.currentTarget.value="";}}/>上傳{noun}</label>}</div>
   </div>;
 }

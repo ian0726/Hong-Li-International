@@ -1,16 +1,21 @@
 import { buildCatalogWorkbook } from "../../../../lib/excel-catalog";
 import { requireAdmin, unauthorized } from "../../../../lib/admin-auth";
 import { ensureDatabase, mapProduct, runtime } from "../../../../lib/product-store";
+import { productOrderBySql } from "../../../../lib/product-sort";
 
 export async function GET(request: Request) {
   try {
     if (!(await requireAdmin(request))) return unauthorized();
     await ensureDatabase();
-    const result=await runtime.DB.prepare("SELECT * FROM products ORDER BY id ASC").all();
+    const [result,categoryResult]=await Promise.all([
+      runtime.DB.prepare(`SELECT p.* FROM products p ORDER BY ${productOrderBySql}`).all(),
+      runtime.DB.prepare("SELECT name FROM categories ORDER BY id ASC").all(),
+    ]);
     const records=result.results.map(mapProduct);
-    const bytes=buildCatalogWorkbook(records);
+    const categories=categoryResult.results.map((row)=>String(row.name));
+    const bytes=buildCatalogWorkbook(records,categories);
     const date=new Date().toISOString().slice(0,10);
-    const fileName=`Ian-Auto-Store-Catalog-${date}.xlsx`;
+    const fileName=`Hongli-Product-Catalog-${date}.xlsx`;
     return new Response(bytes,{
       headers:{
         "content-type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

@@ -1,9 +1,9 @@
 import handler from "vinext/server/app-router-entry";
 
 interface Env {
-  ASSETS: Fetcher;
-  DB: D1Database;
-  BUCKET: R2Bucket;
+  ASSETS: { fetch(request: Request): Promise<Response> };
+  DB: unknown;
+  BUCKET: unknown;
 }
 
 interface ExecutionContext {
@@ -40,6 +40,9 @@ function withPublicCors(response: Response) {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === "/" && (request.method === "GET" || request.method === "HEAD")) {
+      return Response.redirect("https://ian0726.github.io/Hong-Li-International/", 302);
+    }
     const publicApi = isPublicApi(url.pathname);
 
     if (publicApi && request.method === "OPTIONS") {

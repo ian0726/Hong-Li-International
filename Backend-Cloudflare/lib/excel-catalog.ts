@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import { unzipSync } from "fflate";
-import type { ProductRecord } from "./product-store";
+import { parseWiperSpecification, serializeWiperSpecification, type ProductRecord } from "./product-store";
+import { sortProducts } from "./product-sort";
 
 const accents = ["#f97316","#fb923c","#ea580c","#fdba74","#c2410c","#ff8a1f"];
 const valueText = (value: unknown) => value === null || value === undefined ? "" : String(value).replaceAll("_x0005_","\n").replaceAll("\u0005","\n").trim();
@@ -20,6 +21,10 @@ const imageUrlList = (value: unknown) => urlList(value).map((rawUrl)=>{
 type InputProduct = Omit<ProductRecord,"id"|"createdAt"|"updatedAt">;
 type WorkbookImage = { name:string; contentType:string; bytes:Uint8Array };
 
+export const catalogHeaders=["商品系列","品牌","車型","年份","商品名稱","貨品編號","國際條碼","產品規格介紹","雨刷位置","雨刷尺寸","雨刷接頭","雨刷數量","雨刷規格圖片網址","雨刷規格影片網址","圖片網址","影片網址"];
+const catalogColumns=[{wch:14},{wch:14},{wch:24},{wch:14},{wch:46},{wch:20},{wch:20},{wch:58},{wch:16},{wch:20},{wch:20},{wch:16},{wch:42},{wch:42},{wch:42},{wch:42}];
+const ignoredSheetNames=new Set(["使用說明","填寫說明","商品總表"]);
+
 function sheetRows(workbook: XLSX.WorkBook, name: string) {
   const sheet = workbook.Sheets[name];
   return sheet ? XLSX.utils.sheet_to_json<unknown[]>(sheet,{ header:1, defval:"", raw:true }) : [];
@@ -38,10 +43,18 @@ function product(input: Partial<InputProduct>, index: number, imageUrls: string[
   const listedImages=imageUrlList(input.imageUrls?.length ? input.imageUrls.join(",") : input.imageUrl);
   const productImages=listedImages.length ? listedImages : imageUrls[index] ? [imageUrls[index]] : [];
   const productVideos=urlList(input.videoUrls?.join(","));
+  const wiperSpecImages=category === "雨刷" ? imageUrlList(input.wiperSpecImageUrls?.join(",")) : [];
+  const wiperSpecVideos=category === "雨刷" ? urlList(input.wiperSpecVideoUrls?.join(",")) : [];
+  const structuredWiperSpec=parseWiperSpecification(input.wiperSpec);
+  const wiperSpec=Object.values(structuredWiperSpec).some(Boolean) ? structuredWiperSpec : parseWiperSpecification(input.wiperSpecification);
   return {
     category, series:valueText(input.series) || "標準版", brand, model, year, sku,
     barcode:valueText(input.barcode), name,
     description:valueText(input.description) || `${category}，適用 ${brand} ${model}${year === "未指定" ? "" : ` ${year}`}。`,
+    wiperSpecification:category === "雨刷" ? serializeWiperSpecification(wiperSpec) : "",
+    wiperSpec:category === "雨刷" ? wiperSpec : parseWiperSpecification(""),
+    wiperSpecImageUrls:wiperSpecImages,
+    wiperSpecVideoUrls:wiperSpecVideos,
     accent:valueText(input.accent) || accents[index % accents.length],
     imageUrl:productImages[0] || null,
     imageUrls:productImages,
@@ -55,11 +68,65 @@ function parseMaster(workbook: XLSX.WorkBook, imageUrls: string[]) {
   const rows = XLSX.utils.sheet_to_json<Record<string,unknown>>(sheet,{ defval:"", raw:true })
     .filter((row)=>Object.values(row).some((value)=>valueText(value)));
   return rows.map((row,index) => product({
-    category:row["商品種類"], series:row["商品系列"], brand:row["品牌"],
-    model:row["車型"], year:row["年份"], name:row["商品名稱"],
-    sku:row["貨品編號"], barcode:row["國際條碼"], description:row["產品規格介紹"],
-    imageUrls:imageUrlList(row["圖片網址"]), videoUrls:urlList(row["影片網址"]),
+    category:valueText(row["商品種類"]), series:valueText(row["商品系列"]), brand:valueText(row["品牌"]),
+    model:valueText(row["車型"]), year:valueText(row["年份"]), name:valueText(row["商品名稱"]),
+    sku:valueText(row["貨品編號"]), barcode:valueText(row["國際條碼"]), description:valueText(row["產品規格介紹"]),
+    wiperSpecification:valueText(row["雨刷規格說明"]),
+    wiperSpec:{
+      position:valueText(row["雨刷位置"]),
+      size:valueText(row["雨刷尺寸"]),
+      connector:valueText(row["雨刷接頭"]),
+      quantity:valueText(row["雨刷數量"]),
+    },
+    wiperSpecImageUrls:imageUrlList(valueText(row["雨刷規格圖片網址"])),
+    wiperSpecVideoUrls:urlList(valueText(row["雨刷規格影片網址"])),
+    imageUrls:imageUrlList(valueText(row["圖片網址"])), videoUrls:urlList(valueText(row["影片網址"])),
   },index,imageUrls));
+}
+
+function categoryFromSheet(name:string,rows:unknown[][]) {
+  const title=valueText(rows[0]?.[0]);
+  if (title.endsWith("｜商品資料")) return title.slice(0,-5).trim();
+  return name.replace(/\s*[｜|]\s*商品資料\s*$/," ").trim();
+}
+
+function parseCategorySheets(workbook:XLSX.WorkBook,imageUrls:string[]) {
+  const records:InputProduct[]=[];
+  for (const sheetName of workbook.SheetNames) {
+    if (ignoredSheetNames.has(sheetName)) continue;
+    const rows=sheetRows(workbook,sheetName);
+    const headerIndex=rows.slice(0,10).findIndex((row)=>{
+      const cells=row.map(valueText);
+      return ["品牌","車型"].every((header)=>cells.includes(header));
+    });
+    if (headerIndex<0) continue;
+    const headers=rows[headerIndex].map(valueText);
+    const category=categoryFromSheet(sheetName,rows);
+    for (let rowIndex=headerIndex+1;rowIndex<rows.length;rowIndex++) {
+      const values=rows[rowIndex];
+      if (!values.some((value)=>valueText(value))) continue;
+      const row=Object.fromEntries(headers.map((header,index)=>[header,values[index]]));
+      try {
+        records.push(product({
+          category:valueText(row["商品種類"])||category,
+          series:valueText(row["商品系列"]),brand:valueText(row["品牌"]),model:valueText(row["車型"]),year:valueText(row["年份"]),name:valueText(row["商品名稱"]),
+          sku:valueText(row["貨品編號"]),barcode:valueText(row["國際條碼"]),description:valueText(row["產品規格介紹"]),
+          wiperSpecification:valueText(row["雨刷規格說明"]),
+          wiperSpec:{
+            position:valueText(row["雨刷位置"]),size:valueText(row["雨刷尺寸"]),
+            connector:valueText(row["雨刷接頭"]),quantity:valueText(row["雨刷數量"]),
+          },
+          wiperSpecImageUrls:imageUrlList(valueText(row["雨刷規格圖片網址"])),
+          wiperSpecVideoUrls:urlList(valueText(row["雨刷規格影片網址"])),
+          imageUrls:imageUrlList(valueText(row["圖片網址"])),videoUrls:urlList(valueText(row["影片網址"])),
+        },records.length,imageUrls));
+      } catch (error) {
+        const reason=error instanceof Error ? error.message.replace(/^第 \d+ 筆資料/,"資料") : "資料格式錯誤";
+        throw new Error(`「${sheetName}」第 ${rowIndex+1} 列${reason}`);
+      }
+    }
+  }
+  return records;
 }
 
 function parseOriginal(workbook: XLSX.WorkBook, imageUrls: string[]) {
@@ -76,8 +143,8 @@ function parseOriginal(workbook: XLSX.WorkBook, imageUrls: string[]) {
     let model=valueText(row[4]);
     if (!model) model=name.replace(/^.*?BENZ\s+/i,"").replace(/\s+\d{2}[-–].*$/,"").replace(/E級/i,"E-Class / CLS / GT / E Coupe");
     records.push(product({
-      category:"手機底座",series:first || "底座款",brand,model,year:row[5],
-      sku:row[3],barcode:row[2],name,
+      category:"手機底座",series:first || "底座款",brand,model,year:valueText(row[5]),
+      sku:valueText(row[3]),barcode:valueText(row[2]),name,
       description:`${first || "底座款"}專車專用手機支架，適用 ${brand} ${model} ${cleanYear(row[5])}。`,
     },records.length,imageUrls));
   }
@@ -141,30 +208,75 @@ export function extractWorkbookImages(buffer: ArrayBuffer): WorkbookImage[] {
 export function parseCatalogWorkbook(buffer: ArrayBuffer, imageUrls: string[] = []) {
   const workbook=XLSX.read(buffer,{ type:"array" });
   const fromMaster=parseMaster(workbook,imageUrls);
-  const records=fromMaster.length ? fromMaster : parseOriginal(workbook,imageUrls);
-  if (!records.length) throw new Error("找不到可匯入的商品資料，請使用原始車種表或後台匯出的 Excel 格式");
+  const fromCategories=fromMaster.length ? [] : parseCategorySheets(workbook,imageUrls);
+  const records=fromMaster.length ? fromMaster : fromCategories.length ? fromCategories : parseOriginal(workbook,imageUrls);
+  if (!records.length) throw new Error("找不到可匯入的商品資料，請使用後台下載的固定版型，並將商品填入對應的分類工作表");
   if (records.length > 5000) throw new Error("單次最多匯入 5,000 筆商品");
   return records;
 }
 
-export function buildCatalogWorkbook(records: ProductRecord[]) {
-  const workbook=XLSX.utils.book_new();
-  const headers=["商品種類","商品系列","品牌","車型","年份","商品名稱","貨品編號","國際條碼","產品規格介紹","圖片網址","影片網址"];
-  const rows=records.map((row)=>[
-    row.category,row.series,row.brand,row.model,row.year,row.name,row.sku,row.barcode,row.description,
-    (row.imageUrls?.length ? row.imageUrls : row.imageUrl ? [row.imageUrl] : []).join(", "),
-    (row.videoUrls || []).join(", "),
-  ]);
-  const master=XLSX.utils.aoa_to_sheet([headers,...rows]);
-  master["!cols"]=[{wch:14},{wch:14},{wch:14},{wch:24},{wch:14},{wch:46},{wch:20},{wch:20},{wch:58},{wch:42},{wch:42}];
-  master["!autofilter"]={ ref:`A1:K${rows.length + 1}` };
-  XLSX.utils.book_append_sheet(workbook,master,"商品總表");
-  for (const category of [...new Set(records.map((row)=>row.category))]) {
-    const categoryRows=rows.filter((_,index)=>records[index].category === category);
-    const sheet=XLSX.utils.aoa_to_sheet([headers,...categoryRows]);
-    sheet["!cols"]=master["!cols"];
-    sheet["!autofilter"]={ ref:`A1:K${categoryRows.length + 1}` };
-    XLSX.utils.book_append_sheet(workbook,sheet,category.slice(0,31));
+function uniqueCategories(categories:string[],records:ProductRecord[]) {
+  return [...new Set([...categories,...records.map((row)=>row.category)].map(valueText).filter(Boolean))];
+}
+
+function safeSheetName(category:string,used:Set<string>) {
+  const base=category.replace(/[\\/?*\[\]:]/g,"-").trim().slice(0,31)||"未命名分類";
+  let name=base;
+  let suffix=2;
+  while (used.has(name)) {
+    const tail=`-${suffix++}`;
+    name=`${base.slice(0,31-tail.length)}${tail}`;
   }
+  used.add(name);
+  return name;
+}
+
+function recordRow(row:ProductRecord) {
+  const spec=parseWiperSpecification(row.wiperSpec||row.wiperSpecification);
+  return [
+    row.series,row.brand,row.model,row.year,row.name,row.sku,row.barcode,row.description,spec.position,spec.size,spec.connector,spec.quantity,
+    (row.wiperSpecImageUrls||[]).join(", "),(row.wiperSpecVideoUrls||[]).join(", "),
+    (row.imageUrls?.length?row.imageUrls:row.imageUrl?[row.imageUrl]:[]).join(", "),(row.videoUrls||[]).join(", "),
+  ];
+}
+
+function appendInstructions(workbook:XLSX.WorkBook,categories:string[]) {
+  const rows=[
+    ["閎麗國際有限公司｜商品資料固定版型"],
+    ["填寫規則"],
+    ["1. 每個商品分類使用一個獨立工作表；工作表名稱就是商品分類。"],
+    ["2. 必填欄位只有「品牌」與「車型」；商品分類由工作表名稱自動判斷。"],
+    ["3. 多張圖片或影片網址請用逗號分隔；圖片空白時使用後台的分類預設圖片。"],
+    ["4. 雨刷規格欄位只需在「雨刷」工作表填寫，其他分類可留白。"],
+    ["5. 可以直接在表格最後一列下方貼上新商品；請勿修改欄位名稱或刪除標題列。"],
+    ["6. 新增或修改商品後不必手動搬動資料列；上傳時系統會依品牌、車型、年份與 SKU 自動排序，同品牌同車型會排在一起。"],
+    [],
+    ["目前商品分類",...categories],
+  ];
+  const sheet=XLSX.utils.aoa_to_sheet(rows);
+  sheet["!cols"]=[{wch:92},...categories.map(()=>({wch:18}))];
+  XLSX.utils.book_append_sheet(workbook,sheet,"使用說明");
+}
+
+function appendCategorySheet(workbook:XLSX.WorkBook,category:string,records:ProductRecord[],used:Set<string>) {
+  const sorted=sortProducts(records);
+  const rows=[[`${category}｜商品資料`],["必填：品牌、車型。可直接新增或修改；上傳後系統會自動將相同品牌與車型排在一起。"],catalogHeaders,...sorted.map(recordRow)];
+  const sheet=XLSX.utils.aoa_to_sheet(rows);
+  sheet["!cols"]=catalogColumns;
+  sheet["!merges"]=[XLSX.utils.decode_range(`A1:P1`),XLSX.utils.decode_range(`A2:P2`)];
+  sheet["!autofilter"]={ref:`A3:P${Math.max(rows.length,3)}`};
+  XLSX.utils.book_append_sheet(workbook,sheet,safeSheetName(category,used));
+}
+
+export function buildCatalogWorkbook(records: ProductRecord[], categoryNames:string[] = []) {
+  const workbook=XLSX.utils.book_new();
+  const categories=uniqueCategories(categoryNames,records);
+  appendInstructions(workbook,categories);
+  const used=new Set(["使用說明"]);
+  for (const category of categories) appendCategorySheet(workbook,category,records.filter((row)=>row.category===category),used);
   return XLSX.write(workbook,{ type:"array",bookType:"xlsx",compression:true }) as ArrayBuffer;
+}
+
+export function buildCatalogTemplate(categoryNames:string[]) {
+  return buildCatalogWorkbook([],categoryNames.length?categoryNames:["手機底座","遮陽板","冷氣濾網","雨刷"]);
 }

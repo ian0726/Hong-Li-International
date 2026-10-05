@@ -1,6 +1,7 @@
 import { extractWorkbookImages, parseCatalogWorkbook } from "../../../lib/excel-catalog";
 import { requireAdmin, unauthorized } from "../../../lib/admin-auth";
 import { ensureDatabase, runtime } from "../../../lib/product-store";
+import { sortProducts } from "../../../lib/product-sort";
 
 const excelType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       const key=`excel-images/${stamp}/image-${String(index + 1).padStart(2,"0")}.${extension}`;
       return { ...image,key,url:`/api/files?key=${encodeURIComponent(key)}` };
     });
-    const records=parseCatalogWorkbook(buffer,imageEntries.length ? imageEntries.map((item)=>item.url) : undefined);
+    const records=sortProducts(parseCatalogWorkbook(buffer,imageEntries.length ? imageEntries.map((item)=>item.url) : undefined));
     for (const image of imageEntries) {
       await runtime.BUCKET.put(image.key,image.bytes,{ httpMetadata:{ contentType:image.contentType } });
       uploadedKeys.push(image.key);
@@ -60,8 +61,8 @@ export async function POST(request: Request) {
       runtime.DB.prepare("DELETE FROM products"),
       runtime.DB.prepare("DELETE FROM sqlite_sequence WHERE name='products'"),
       ...records.map((row)=>runtime.DB.prepare(`INSERT INTO products
-        (name,category,series,brand,model,year,sku,barcode,description,accent,image_url,image_urls,video_urls,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(row.name,row.category,row.series,row.brand,row.model,row.year,row.sku,row.barcode,row.description,row.accent,row.imageUrl || null,JSON.stringify(row.imageUrls || []),JSON.stringify(row.videoUrls || []),now,now)),
+        (name,category,series,brand,model,year,sku,barcode,description,wiper_specification,wiper_spec_image_urls,wiper_spec_video_urls,accent,image_url,image_urls,video_urls,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(row.name,row.category,row.series,row.brand,row.model,row.year,row.sku,row.barcode,row.description,row.wiperSpecification || "",JSON.stringify(row.wiperSpecImageUrls || []),JSON.stringify(row.wiperSpecVideoUrls || []),row.accent,row.imageUrl || null,JSON.stringify(row.imageUrls || []),JSON.stringify(row.videoUrls || []),now,now)),
       ...[...new Set(records.map((row)=>row.category))].map((name)=>runtime.DB.prepare(
         "INSERT OR IGNORE INTO categories (name,created_at,updated_at) VALUES (?,?,?)"
       ).bind(name,now,now)),
@@ -77,7 +78,11 @@ export async function POST(request: Request) {
     await runtime.DB.batch(statements);
     const previousKey=previous?.file_key ? String(previous.file_key) : "";
     if (previousKey && !previousKey.startsWith("seed://")) await runtime.BUCKET.delete(previousKey);
-    return Response.json({ fileName:file.name,version:nextVersion,updatedAt:now,productCount:records.length,imageCount:embedded.length });
+    return Response.json({
+      fileName:file.name,version:nextVersion,updatedAt:now,productCount:records.length,imageCount:embedded.length,
+      categoryCount:new Set(records.map((row)=>row.category)).size,
+      brandCount:new Set(records.map((row)=>row.brand.toUpperCase())).size,
+    });
   } catch (error) {
     for (const key of uploadedKeys) {
       try { await runtime.BUCKET.delete(key); } catch { /* best-effort cleanup */ }
