@@ -36,7 +36,7 @@ function ProductVisual({ product }: { product: Product }) {
   return <div className="product-visual" style={{ "--product-accent": product.accent } as React.CSSProperties}>
     {resolvedImage && <ProductImage className="uploaded-product-image" src={assetUrl(resolvedImage)} fallbackSources={[...(product.imageUrls||[]),product.defaultImageUrl].filter((url):url is string=>Boolean(url)).map(assetUrl)} alt={product.name} />}
     <div className="visual-grid" /><div className="visual-orbit orbit-one" /><div className="visual-orbit orbit-two" />
-    {!resolvedImage && <span className="visual-glyph">{glyph[product.category] || product.category.slice(0, 2)}</span>}
+    {<span className="visual-glyph" aria-hidden="true">{glyph[product.category] || product.category.slice(0, 2)}</span>}
     <span className="visual-label">AUTO FIT / {product.id.toString().padStart(2, "0")}</span>
   </div>;
 }

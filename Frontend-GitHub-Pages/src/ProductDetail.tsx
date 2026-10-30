@@ -48,7 +48,7 @@ export default function ProductDetail({product,settings,onBack,assetUrl,apiBase}
       <AutoFitTitle as="h1" maxSize={56} mobileMaxSize={34} minSize={12}>{product.name}</AutoFitTitle>
       <div className="detail-intro-bottom"><p>{product.description}</p><a className="button primary" href={mailto}>詢問此項產品 <ArrowIcon /></a></div>
     </section>
-    {images.length>0&&<section className="primary-media-section"><div className="primary-media-frame"><MediaStack images={images.slice(0,1)} fallbackSources={images.slice(1)} name={product.name} assetUrl={assetUrl}/></div></section>}
+    {images.length>0&&<section className="primary-media-section"><div className="primary-media-frame"><MediaStack images={images.slice(0,1)} fallbackSources={[...images.slice(1),...(product.defaultImageUrl?[product.defaultImageUrl]:[])]} name={product.name} assetUrl={assetUrl}/></div></section>}
     {wiper&&<section className="wiper-spec-section"><div><p className="eyebrow dark"><span/>WIPER SPECIFICATION</p><h2>規格說明</h2></div>
       <dl className="wiper-spec-table">{[["安裝位置",product.wiperSpec?.position],["雨刷尺寸",product.wiperSpec?.size],["接頭規格",product.wiperSpec?.connector],["包裝數量",product.wiperSpec?.quantity]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||"未設定"}</dd></div>)}</dl>
     </section>}
