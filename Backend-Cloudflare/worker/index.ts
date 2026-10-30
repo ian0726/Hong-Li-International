@@ -1,4 +1,6 @@
 import handler from "vinext/server/app-router-entry";
+import { imageResponse } from "../lib/image-resolver";
+import { displayImages } from "../lib/image-source";
 
 interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> };
@@ -43,6 +45,7 @@ const worker = {
     if (url.pathname === "/" && (request.method === "GET" || request.method === "HEAD")) {
       return Response.redirect("https://ian0726.github.io/Hong-Li-International/", 302);
     }
+    if(url.pathname==="/api/image") return imageResponse(request);
     const publicApi = isPublicApi(url.pathname);
 
     if (publicApi && request.method === "OPTIONS") {
@@ -51,6 +54,11 @@ const worker = {
 
     const response = await handler.fetch(request, env, ctx);
     if (publicApi && (request.method === "GET" || request.method === "HEAD")) {
+      if(request.method==="GET" && request.headers.get("Origin")==="https://ian0726.github.io" && response.ok && response.headers.get("content-type")?.includes("application/json")) {
+        const data=displayImages(await response.json(),url.origin);
+        const headers=new Headers(response.headers); headers.delete("content-length");headers.delete("content-encoding");headers.set("Vary","Origin");
+        return withPublicCors(Response.json(data,{headers}));
+      }
       return withPublicCors(response);
     }
     return response;

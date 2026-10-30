@@ -523,3 +523,8 @@ details.admin-panel > summary:hover .collapse-indicator { border-color:#f36b16; 
 .arrow-icon { display:inline-block; width:20px; height:20px; flex-shrink:0; vertical-align:middle; }
 .button .arrow-icon { margin-left:28px; }
 .site-header .admin-link,.media-stack-video>a { display:inline-flex; align-items:center; gap:8px; }
+
+.catalog-pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;color:#52525b}
+.catalog-pagination>div{display:flex;gap:12px}.catalog-pagination button{border:1px solid #d4d4d8;background:white;border-radius:999px;padding:12px 24px;cursor:pointer;font:inherit}
+.catalog-pagination button:not(:disabled):hover{border-color:#f97316;color:#ea580c}.catalog-pagination button:disabled{opacity:.4;cursor:not-allowed}
+.image-unavailable{display:flex;min-height:100px;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:#f4f4f5;color:#71717a;padding:20px}.image-unavailable button{border:1px solid #d4d4d8;border-radius:20px;padding:8px 16px;background:white;color:#52525b}

@@ -1,4 +1,5 @@
 "use client";
+import ProductImage from "./product-image";
 
 type Props={
   kind:"image"|"video";
@@ -14,7 +15,7 @@ export default function MediaUrlEditor({kind,urls,onChange,onUpload}:Props){
   return <div className="media-url-editor">
     <div className="media-url-list">{urls.map((url,index)=><div className="media-url-row" key={`${kind}-${index}`}>
       <span className="media-order">{String(index+1).padStart(2,"0")}</span>
-      {kind==="image"&&url?<img src={url} alt=""/>:<span className="media-kind">{kind==="image"?"IMG":"VIDEO"}</span>}
+      {kind==="image"&&url?<ProductImage src={url}/>:<span className="media-kind">{kind==="image"?"IMG":"VIDEO"}</span>}
       <input type="url" value={url} onChange={(event)=>update(index,event.target.value)} placeholder={`貼上${noun}網址`}/>
       <button type="button" className="media-remove" onClick={()=>remove(index)} aria-label={`刪除第 ${index+1} 個${noun}`}>刪除</button>
     </div>)}</div>

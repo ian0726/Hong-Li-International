@@ -1,6 +1,7 @@
 import { useLayoutEffect } from "react";
 import AutoFitTitle from "./AutoFitTitle";
 import ArrowIcon from "./ArrowIcon";
+import ProductImage from "./ProductImage";
 import { inquiryLink, type Product, type InquirySettings } from "./catalog";
 
 function videoEmbed(raw:string) {
@@ -19,9 +20,9 @@ function videoEmbed(raw:string) {
   return null;
 }
 
-function MediaStack({images=[],videos=[],name,assetUrl}:{images?:string[];videos?:string[];name:string;assetUrl:(url?:string|null)=>string}) {
+function MediaStack({images=[],videos=[],fallbackSources=[],name,assetUrl}:{images?:string[];videos?:string[];fallbackSources?:string[];name:string;assetUrl:(url?:string|null)=>string}) {
   return <div className="media-stack">
-    {images.map((url,index)=><img key={`${url}-${index}`} src={assetUrl(url)} alt={`${name} ${index+1}`} loading="lazy"/>)}
+    {images.map((url,index)=><ProductImage key={`${url}-${index}`} src={assetUrl(url)} fallbackSources={fallbackSources.map(assetUrl)} alt={`${name} ${index+1}`} loading="lazy"/>)}
     {videos.map((url,index)=>{
       const resolved=assetUrl(url),embed=videoEmbed(resolved),title=`${name} ${index+1}`;
       return <div className="media-stack-video" key={`${url}-${index}`}>
@@ -47,7 +48,7 @@ export default function ProductDetail({product,settings,onBack,assetUrl,apiBase}
       <AutoFitTitle as="h1" maxSize={56} mobileMaxSize={34} minSize={12}>{product.name}</AutoFitTitle>
       <div className="detail-intro-bottom"><p>{product.description}</p><a className="button primary" href={mailto}>詢問此項產品 <ArrowIcon /></a></div>
     </section>
-    {images.length>0&&<section className="primary-media-section"><div className="primary-media-frame"><MediaStack images={images.slice(0,1)} name={product.name} assetUrl={assetUrl}/></div></section>}
+    {images.length>0&&<section className="primary-media-section"><div className="primary-media-frame"><MediaStack images={images.slice(0,1)} fallbackSources={images.slice(1)} name={product.name} assetUrl={assetUrl}/></div></section>}
     {wiper&&<section className="wiper-spec-section"><div><p className="eyebrow dark"><span/>WIPER SPECIFICATION</p><h2>規格說明</h2></div>
       <dl className="wiper-spec-table">{[["安裝位置",product.wiperSpec?.position],["雨刷尺寸",product.wiperSpec?.size],["接頭規格",product.wiperSpec?.connector],["包裝數量",product.wiperSpec?.quantity]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||"未設定"}</dd></div>)}</dl>
     </section>}
