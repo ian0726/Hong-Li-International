@@ -84,9 +84,7 @@ function parseMaster(workbook: XLSX.WorkBook, imageUrls: string[]) {
   },index,imageUrls));
 }
 
-function categoryFromSheet(name:string,rows:unknown[][]) {
-  const title=valueText(rows[0]?.[0]);
-  if (title.endsWith("｜商品資料")) return title.slice(0,-5).trim();
+function categoryFromSheet(name:string) {
   return name.replace(/\s*[｜|]\s*商品資料\s*$/," ").trim();
 }
 
@@ -101,14 +99,14 @@ function parseCategorySheets(workbook:XLSX.WorkBook,imageUrls:string[]) {
     });
     if (headerIndex<0) continue;
     const headers=rows[headerIndex].map(valueText);
-    const category=categoryFromSheet(sheetName,rows);
+    const category=categoryFromSheet(sheetName);
     for (let rowIndex=headerIndex+1;rowIndex<rows.length;rowIndex++) {
       const values=rows[rowIndex];
       if (!values.some((value)=>valueText(value))) continue;
       const row=Object.fromEntries(headers.map((header,index)=>[header,values[index]]));
       try {
         records.push(product({
-          category:valueText(row["商品種類"])||category,
+          category,
           series:valueText(row["商品系列"]),brand:valueText(row["品牌"]),model:valueText(row["車型"]),year:valueText(row["年份"]),name:valueText(row["商品名稱"]),
           sku:valueText(row["貨品編號"]),barcode:valueText(row["國際條碼"]),description:valueText(row["產品規格介紹"]),
           wiperSpecification:valueText(row["雨刷規格說明"]),
