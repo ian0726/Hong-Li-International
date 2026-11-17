@@ -38,6 +38,10 @@ export default function ProductDetail({product,settings,onBack,assetUrl,apiBase}
   const images=product.imageUrls?.length?product.imageUrls:product.imageUrl?[product.imageUrl]:product.defaultImageUrl?[product.defaultImageUrl]:[];
   const mailto=inquiryLink(settings,product);
   const wiper=product.category==="雨刷";
+  const connector=product.wiperSpec?.connector || "";
+  const connectorImagePattern=/https?:\/\/[^\s,，;；<>]+/gi;
+  const connectorImages=[...new Set(connector.match(connectorImagePattern) || [])];
+  const connectorText=connector.replace(connectorImagePattern,"").replace(/^[\s,，;；]+|[\s,，;；]+$/g,"");
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [product.id]);
@@ -50,7 +54,7 @@ export default function ProductDetail({product,settings,onBack,assetUrl,apiBase}
     </section>
     {images.length>0&&<section className="primary-media-section"><div className="primary-media-frame"><MediaStack images={images.slice(0,1)} fallbackSources={[...images.slice(1),...(product.defaultImageUrl?[product.defaultImageUrl]:[])]} name={product.name} assetUrl={assetUrl}/></div></section>}
     {wiper&&<section className="wiper-spec-section"><div><p className="eyebrow dark"><span/>WIPER SPECIFICATION</p><h2>規格說明</h2></div>
-      <dl className="wiper-spec-table">{[["安裝位置",product.wiperSpec?.position],["雨刷尺寸",product.wiperSpec?.size],["接頭規格",product.wiperSpec?.connector],["包裝數量",product.wiperSpec?.quantity]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||"未設定"}</dd></div>)}</dl>
+      <dl className="wiper-spec-table">{[["安裝位置",product.wiperSpec?.position],["雨刷尺寸",product.wiperSpec?.size],["接頭規格",connectorText],["包裝數量",product.wiperSpec?.quantity]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{label==="接頭規格" && connectorImages.length ? <>{value && <span>{value}</span>}<div className="connector-images">{connectorImages.map((url,index)=><ProductImage key={url} src={assetUrl(url)} alt={`接頭規格圖 ${index+1}`}/>)}</div></> : value||"未設定"}</dd></div>)}</dl>
     </section>}
     {wiper&&Boolean(product.wiperSpecImageUrls?.length||product.wiperSpecVideoUrls?.length)&&<section className="wiper-spec-media-section"><MediaStack images={product.wiperSpecImageUrls} videos={product.wiperSpecVideoUrls} name={product.name} assetUrl={assetUrl}/></section>}
     {images.length>1&&<section className="detail-gallery-section"><MediaStack images={images.slice(1)} name={product.name} assetUrl={assetUrl}/></section>}

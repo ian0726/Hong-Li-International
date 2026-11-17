@@ -532,3 +532,10 @@ details.admin-panel > summary:hover .collapse-indicator { border-color:#f36b16; 
 .product-card .product-visual { aspect-ratio:4 / 3; height:auto; min-height:0; }
 .product-card .uploaded-product-image { object-fit:contain; background:#f6f6f6; }
 .catalog-pagination select { margin-inline-start:.35rem; padding:.35rem .5rem; }
+
+.product-detail .media-stack > img,.product-detail .media-stack-video { width:100%; max-width:1120px; }
+.product-detail .media-stack-video :is(iframe,video) { display:block; width:100%; height:auto; aspect-ratio:16 / 9; border:0; object-fit:contain; }
+.product-detail .wiper-spec-table dd { min-width:0; overflow-wrap:anywhere; }
+.connector-images { display:grid; gap:12px; min-width:0; }
+.connector-images img { display:block; width:100%; max-width:100%; height:auto; }
+.connector-images:empty { display:none; }
